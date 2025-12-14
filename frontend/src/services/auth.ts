@@ -1,13 +1,14 @@
 import axios from 'axios'
 import { LoginResponse } from '../types'
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001'
+// Используем относительный путь для работы через тот же протокол и домен
+const BASE_URL = import.meta.env.VITE_API_URL || '/api'
 const ACCESS_TOKEN_KEY = 'access_token'
 const REFRESH_TOKEN_KEY = 'refresh_token'
 
 class AuthService {
   async login(username: string, password: string): Promise<LoginResponse> {
-    const response = await axios.post<LoginResponse>(`${BASE_URL}/api/auth/login`, {
+    const response = await axios.post<LoginResponse>(`${BASE_URL}/auth/login`, {
       username,
       password,
     })
@@ -24,7 +25,7 @@ class AuthService {
       throw new Error('No refresh token available')
     }
 
-    const response = await axios.post(`${BASE_URL}/api/auth/refresh`, {
+    const response = await axios.post(`${BASE_URL}/auth/refresh`, {
       refresh_token: refreshToken,
     })
 

@@ -20,7 +20,7 @@ export function useChat(chatId: number | null) {
 
     try {
       setLoading(true)
-      const response = await api.get<Chat>(`/api/chats/${chatId}`)
+      const response = await api.get<Chat>(`/chats/${chatId}`)
       setChat(response.data)
     } catch (err: any) {
       setError(err.message || 'Error loading chat')
@@ -34,7 +34,7 @@ export function useChat(chatId: number | null) {
 
     try {
       setLoading(true)
-      const response = await api.get<Message[]>(`/api/chats/${chatId}/messages`)
+      const response = await api.get<Message[]>(`/chats/${chatId}/messages`)
       setMessages(response.data)
     } catch (err: any) {
       setError(err.message || 'Error loading messages')
@@ -50,7 +50,7 @@ export function useChat(chatId: number | null) {
       setLoading(true)
       setError(null)
       
-      const response = await api.post(`/api/chats/${chatId}/messages`, { content })
+      const response = await api.post(`/chats/${chatId}/messages`, { content })
       
       // Reload messages after sending
       await loadMessages()

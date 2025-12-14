@@ -25,24 +25,24 @@ ENV PATH="/root/.local/bin/:$PATH"
 
 
 # Копирование файлов зависимостей
-COPY pyproject.toml ./
-COPY . ./backend/
-
-# Установка Python зависимостей
-RUN uv sync
+COPY backend/pyproject.toml ./backend/
+COPY backend/ ./backend/
 
 # Рабочая директория для backend
 WORKDIR /app/backend
+
+# Установка Python зависимостей
+RUN uv sync
 
 # Создание директории для базы данных
 RUN mkdir -p /app/data
 
 # Переменные окружения по умолчанию
 ENV PYTHONUNBUFFERED=1
-ENV DATABASE_URL=sqlite+aiosqlite:///./data/b24_analytics.db
+ENV DATABASE_URL=sqlite+aiosqlite:////app/data/b24_analytics.db
 
 # Выполнение миграций при запуске
-COPY entrypoint.sh /entrypoint.sh
+COPY backend/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 8001

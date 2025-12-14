@@ -18,7 +18,7 @@ export default function UserManagement() {
 
   const loadUsers = async () => {
     try {
-      const response = await api.get<User[]>('/api/admin/users')
+      const response = await api.get<User[]>('/admin/users')
       setUsers(response.data)
     } catch (error) {
       console.error('Error loading users:', error)
@@ -27,7 +27,7 @@ export default function UserManagement() {
 
   const createUser = async () => {
     try {
-      await api.post('/api/admin/users', formData)
+      await api.post('/admin/users', formData)
       setShowForm(false)
       setFormData({ username: '', email: '', password: '', is_admin: false })
       loadUsers()
@@ -39,7 +39,7 @@ export default function UserManagement() {
   const deleteUser = async (id: number) => {
     if (!confirm('Удалить пользователя?')) return
     try {
-      await api.delete(`/api/admin/users/${id}`)
+      await api.delete(`/admin/users/${id}`)
       loadUsers()
     } catch (error) {
       alert('Ошибка удаления пользователя')

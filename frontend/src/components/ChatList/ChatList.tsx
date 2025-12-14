@@ -19,7 +19,7 @@ export default function ChatList() {
 
   const loadChats = async () => {
     try {
-      const response = await api.get<Chat[]>('/api/chats')
+      const response = await api.get<Chat[]>('/chats')
       setChats(response.data)
     } catch (error) {
       console.error('Error loading chats:', error)
@@ -32,7 +32,7 @@ export default function ChatList() {
     if (!newChatTitle.trim()) return
 
     try {
-      const response = await api.post<Chat>('/api/chats', { title: newChatTitle })
+      const response = await api.post<Chat>('/chats', { title: newChatTitle })
       navigate(`/chat/${response.data.id}`)
     } catch (error) {
       console.error('Error creating chat:', error)

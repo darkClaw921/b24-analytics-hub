@@ -1,4 +1,25 @@
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8001'
+// Определяем протокол WebSocket на основе текущего протокола страницы
+const getWebSocketUrl = () => {
+  // Если указан явный URL для WebSocket, используем его
+  if (import.meta.env.VITE_WS_URL) {
+    return import.meta.env.VITE_WS_URL
+  }
+  
+  // Если есть URL бэкенда, используем его для WebSocket
+  const backendUrl = import.meta.env.VITE_BACKEND_URL
+  if (backendUrl && !backendUrl.startsWith('/')) {
+    // Абсолютный URL - преобразуем http -> ws, https -> wss
+    const wsUrl = backendUrl.replace(/^http/, 'ws').replace(/^https/, 'wss')
+    return `${wsUrl}/ws`
+  }
+  
+  // Иначе используем относительный путь через proxy
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  const host = window.location.host
+  return `${protocol}//${host}/ws`
+}
+
+const WS_URL = getWebSocketUrl()
 
 export class WebSocketService {
   private ws: WebSocket | null = null
@@ -6,7 +27,7 @@ export class WebSocketService {
 
   connect(chatId: number, onMessage: (data: any) => void) {
     this.chatId = chatId
-    this.ws = new WebSocket(`${WS_URL}/ws/chats/${chatId}`)
+    this.ws = new WebSocket(`${WS_URL}/chats/${chatId}`)
 
     this.ws.onopen = () => {
       console.log('WebSocket connected')
@@ -22,7 +43,10 @@ export class WebSocketService {
     }
 
     this.ws.onerror = (error) => {
-      console.error('WebSocket error:', error)
+      // Логируем ошибки только в режиме разработки
+      if (import.meta.env.DEV) {
+        console.error('WebSocket error:', error)
+      }
     }
 
     this.ws.onclose = () => {

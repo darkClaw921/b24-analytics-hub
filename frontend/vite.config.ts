@@ -16,12 +16,13 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: process.env.VITE_BACKEND_URL || 'http://localhost:8001',
         changeOrigin: true,
       },
       '/ws': {
-        target: 'ws://localhost:8000',
+        target: process.env.VITE_BACKEND_URL || 'ws://localhost:8001',
         ws: true,
+        changeOrigin: true,
       },
     },
   },
@@ -32,8 +33,20 @@ export default defineConfig({
       'b24analitycshub-frontend-wc7d9n-cad79c-45-84-227-231.traefik.me',
       'b24-analytics-frontend.orb.local',
       '*.orb.local',
-      'determined_shockley.orb.local'
+      'determined_shockley.orb.local',
+      'b24-analytics-hub-frontend.b24-analytics-hub.orb.local'
     ],
+    proxy: {
+      '/api': {
+        target: process.env.VITE_BACKEND_URL || 'http://localhost:8001',
+        changeOrigin: true,
+      },
+      '/ws': {
+        target: (process.env.VITE_BACKEND_URL || 'http://localhost:8001')?.replace('http', 'ws'),
+        ws: true,
+        changeOrigin: true,
+      },
+    },
   },
 })
 

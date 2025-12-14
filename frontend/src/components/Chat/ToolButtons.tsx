@@ -29,7 +29,7 @@ export default function ToolButtons({ chatId, onToolResult }: ToolButtonsProps) 
 
   const loadTools = async () => {
     try {
-      const response = await api.get<ToolMetadata[]>('/api/mcp/tools')
+      const response = await api.get<ToolMetadata[]>('/mcp/tools')
       // API already returns only popular tools
       setTools(response.data)
     } catch (error) {
@@ -206,7 +206,7 @@ export default function ToolButtons({ chatId, onToolResult }: ToolButtonsProps) 
     try {
       setLoading(true)
       
-      await api.post(`/api/chats/${chatId}/call-tool`, {
+      await api.post(`/chats/${chatId}/call-tool`, {
         server_name: selectedTool.server_name || 'bitrix24-main',
         tool_name: selectedTool.name,
         arguments: toolArgs

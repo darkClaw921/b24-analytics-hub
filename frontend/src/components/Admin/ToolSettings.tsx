@@ -14,7 +14,7 @@ export default function ToolSettings() {
 
   const loadTools = async () => {
     try {
-      const response = await api.get<MCPTool[]>('/api/admin/mcp/tools')
+      const response = await api.get<MCPTool[]>('/admin/mcp/tools')
       setTools(response.data)
     } catch (error) {
       console.error('Error loading tools:', error)
@@ -23,7 +23,7 @@ export default function ToolSettings() {
 
   const toggleActive = async (id: number, isActive: boolean) => {
     try {
-      await api.put(`/api/admin/mcp/tools/${id}`, { is_active: !isActive })
+      await api.put(`/admin/mcp/tools/${id}`, { is_active: !isActive })
       loadTools()
     } catch (error) {
       alert('Ошибка обновления инструмента')
@@ -32,7 +32,7 @@ export default function ToolSettings() {
 
   const togglePopular = async (id: number, isPopular: boolean) => {
     try {
-      await api.put(`/api/admin/mcp/tools/${id}`, { is_popular: !isPopular })
+      await api.put(`/admin/mcp/tools/${id}`, { is_popular: !isPopular })
       loadTools()
     } catch (error) {
       alert('Ошибка обновления инструмента')
@@ -53,7 +53,7 @@ export default function ToolSettings() {
 
   const saveEdit = async (id: number) => {
     try {
-      await api.put(`/api/admin/mcp/tools/${id}`, {
+      await api.put(`/admin/mcp/tools/${id}`, {
         custom_name: editName.trim() || null,
         custom_description: editDescription.trim() || null
       })

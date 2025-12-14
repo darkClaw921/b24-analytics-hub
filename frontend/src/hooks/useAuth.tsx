@@ -22,11 +22,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const loadUser = async () => {
       if (authService.isAuthenticated()) {
         try {
-          const response = await api.get<User>('/api/users/me')
+          const response = await api.get<User>('/users/me')
           setUser(response.data)
-        } catch (error) {
-          console.error('Error loading user:', error)
-          authService.logout()
+        } catch (error: any) {
+          // Логируем только в режиме разработки или если это не ошибка аутентификации
+          if (import.meta.env.DEV || error.response?.status !== 401) {
+            console.error('Error loading user:', error)
+          }
+          // Если токен невалиден, очищаем его
+          if (error.response?.status === 401 || error.response?.status === 403) {
+            authService.logout()
+          }
         }
       }
       setLoading(false)
@@ -37,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (username: string, password: string) => {
     await authService.login(username, password)
-    const response = await api.get<User>('/api/users/me')
+    const response = await api.get<User>('/users/me')
     setUser(response.data)
   }
 

@@ -1,7 +1,8 @@
 import axios, { AxiosInstance } from 'axios'
 import { authService } from './auth'
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001'
+// Используем относительный путь для работы через тот же протокол и домен
+const BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
 class ApiService {
   private client: AxiosInstance

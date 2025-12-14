@@ -20,7 +20,7 @@ export default function MCPServers() {
 
   const loadServers = async () => {
     try {
-      const response = await api.get<MCPServer[]>('/api/admin/mcp/servers')
+      const response = await api.get<MCPServer[]>('/admin/mcp/servers')
       setServers(response.data)
     } catch (error) {
       console.error('Error loading servers:', error)
@@ -47,7 +47,7 @@ export default function MCPServers() {
 
   const createServer = async () => {
     try {
-      await api.post('/api/admin/mcp/servers', formData)
+      await api.post('/admin/mcp/servers', formData)
       resetForm()
       loadServers()
     } catch (error: any) {
@@ -58,7 +58,7 @@ export default function MCPServers() {
   const updateServer = async () => {
     if (!editingId) return
     try {
-      await api.put(`/api/admin/mcp/servers/${editingId}`, formData)
+      await api.put(`/admin/mcp/servers/${editingId}`, formData)
       resetForm()
       loadServers()
     } catch (error: any) {
@@ -76,7 +76,7 @@ export default function MCPServers() {
 
   const toggleActive = async (id: number, isActive: boolean) => {
     try {
-      await api.put(`/api/admin/mcp/servers/${id}`, { is_active: !isActive })
+      await api.put(`/admin/mcp/servers/${id}`, { is_active: !isActive })
       loadServers()
     } catch (error) {
       alert('Ошибка обновления сервера')
@@ -86,7 +86,7 @@ export default function MCPServers() {
   const deleteServer = async (id: number) => {
     if (!confirm('Удалить сервер?')) return
     try {
-      await api.delete(`/api/admin/mcp/servers/${id}`)
+      await api.delete(`/admin/mcp/servers/${id}`)
       loadServers()
     } catch (error) {
       alert('Ошибка удаления сервера')
