@@ -15,7 +15,7 @@ COPY pyproject.toml ./
 COPY . ./backend/
 
 # Установка Python зависимостей
-RUN pip install --no-cache-dir -e .
+RUN uv sync
 
 # Рабочая директория для backend
 WORKDIR /app/backend
