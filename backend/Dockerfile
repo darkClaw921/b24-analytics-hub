@@ -1,5 +1,7 @@
 FROM python:3.12-slim
 
+RUN ls
+RUN pwd
 WORKDIR /app
 
 # Установка системных зависимостей
@@ -10,7 +12,7 @@ RUN apt-get update && apt-get install -y \
 
 # Копирование файлов зависимостей
 COPY pyproject.toml ./
-COPY backend/ ./backend/
+COPY . ./backend/
 
 # Установка Python зависимостей
 RUN pip install --no-cache-dir -e .
@@ -26,7 +28,7 @@ ENV PYTHONUNBUFFERED=1
 ENV DATABASE_URL=sqlite+aiosqlite:///./data/b24_analytics.db
 
 # Выполнение миграций при запуске
-COPY backend/entrypoint.sh /entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 8001

@@ -3,13 +3,13 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Копирование package файлов
-COPY frontend/package*.json ./
+COPY package*.json ./
 
 # Установка зависимостей
 RUN npm ci
 
 # Копирование исходного кода
-COPY frontend/ ./
+COPY . ./
 
 # Сборка приложения (пропускаем проверку типов для быстрой сборки)
 RUN npx vite build
