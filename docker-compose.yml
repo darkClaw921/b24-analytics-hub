@@ -12,6 +12,22 @@ services:
     
     environment:
       - DATABASE_URL=sqlite+aiosqlite:////app/data/b24_analytics.db
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_REFRESH_SECRET_KEY=${JWT_REFRESH_SECRET_KEY}
+      - JWT_ALGORITHM=${JWT_ALGORITHM}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
+      - REFRESH_TOKEN_EXPIRE_DAYS=${REFRESH_TOKEN_EXPIRE_DAYS}
+
+      - MCP_BITRIX24_URL=${MCP_BITRIX24_URL}
+      - MCP_BITRIX24_NAME=${MCP_BITRIX24_NAME}
+      - MCP_BITRIX24_TRANSPORT=${MCP_BITRIX24_TRANSPORT}
+      - MCP_BITRIX24_AUTH_TOKEN=${MCP_BITRIX24_AUTH_TOKEN}
+
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - APP_NAME=${APP_NAME}
+      - APP_VERSION=${APP_VERSION}
+      - DEBUG=${DEBUG}
+
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
@@ -32,6 +48,7 @@ services:
     environment:
       - VITE_BACKEND_URL=http://b24-analytics-hub-backend:8001
       - VITE_WS_URL=ws://b24-analytics-hub-backend:8001/ws
+      
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
