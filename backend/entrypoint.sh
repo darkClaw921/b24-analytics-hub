@@ -3,8 +3,10 @@ set -e
 
 # Выполнение миграций Alembic
 echo "Running database migrations..."
-alembic upgrade head
+cd /app/backend
+uv run alembic upgrade head
 
 # Запуск приложения
 echo "Starting application..."
+cd /app/backend
 exec "$@"
