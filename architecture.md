@@ -18,9 +18,15 @@ B24 Analytics Hub - веб-приложение для аналитики дан
 
 ### Frontend
 - **React 18 + TypeScript** - UI фреймворк
-- **Vite** - сборщик
+- **Vite** - сборщик и preview сервер для production
 - **React Router** - маршрутизация
 - **Axios** - HTTP клиент
+
+### Docker
+- **Docker Compose** - оркестрация сервисов
+- **Backend Dockerfile** - контейнеризация FastAPI приложения (Python 3.12)
+- **Frontend Dockerfile** - сборка React приложения с запуском через Vite preview
+- **Volumes** - хранение данных базы данных SQLite
 
 ### База данных (SQLite)
 - **users** - пользователи системы
@@ -59,6 +65,8 @@ B24 Analytics Hub - веб-приложение для аналитики дан
 - **database.py** - настройка async SQLAlchemy, создание сессий
 - **auth.py** - JWT токены (создание, проверка), хеширование паролей
 - **dependencies.py** - FastAPI зависимости (get_current_user, get_current_admin_user)
+- **Dockerfile** - конфигурация Docker образа для backend
+- **entrypoint.sh** - скрипт запуска с выполнением миграций Alembic
 
 ### Frontend (`/frontend/src/`)
 
@@ -98,6 +106,9 @@ B24 Analytics Hub - веб-приложение для аналитики дан
 
 #### Типы (`types/`)
 - **index.ts** - TypeScript типы (User, Chat, Message, MCPServer, MCPTool и т.д.)
+
+#### Docker файлы
+- **Dockerfile** - сборка React приложения и запуск через Vite preview сервер
 
 ## Функциональность
 
@@ -150,6 +161,32 @@ B24 Analytics Hub - веб-приложение для аналитики дан
 - Bcrypt для хеширования паролей
 - Защита API endpoints через middleware
 - CORS настроен для разработки (в продакшене нужно указать конкретные origins)
+
+## Docker
+
+### Структура Docker файлов
+- **docker-compose.yml** - оркестрация backend и frontend сервисов
+- **backend/Dockerfile** - образ для FastAPI приложения
+- **backend/entrypoint.sh** - скрипт запуска с миграциями
+- **frontend/Dockerfile** - сборка React приложения и запуск через Vite preview
+- **.dockerignore** - файлы, исключаемые из Docker контекста
+
+### Запуск через Docker
+1. Backend сервис:
+   - Использует Python 3.12-slim образ
+   - Автоматически выполняет миграции Alembic при запуске
+   - База данных SQLite хранится в volume `backend_data`
+   - Порт 8001 для API и WebSocket
+
+2. Frontend сервис:
+   - Использует Node 20 Alpine образ
+   - Собирает React приложение через Vite
+   - Запускает Vite preview сервер для раздачи статики
+   - Порт 3000 для доступа к приложению
+   - Проксирование API и WebSocket запросов настраивается на уровне сервера
+
+3. Volumes:
+   - `backend_data` - хранение SQLite базы данных
 
 ## Дизайн
 - Цветовая схема Bitrix24 (синий #2066B0, серый #E5E5E5)
