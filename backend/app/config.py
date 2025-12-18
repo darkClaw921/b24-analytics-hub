@@ -27,6 +27,7 @@ class Settings:
     
     # OpenAI
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     
     # MCP Bitrix24
     MCP_BITRIX24_URL: str = os.getenv("MCP_BITRIX24_URL", "http://0.0.0.0:8000/mcp")

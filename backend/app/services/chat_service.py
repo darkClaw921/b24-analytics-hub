@@ -21,7 +21,7 @@ class ChatService:
     
     def __init__(self):
         self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
-        self.model = "gpt-4o-mini"
+        self.model = settings.OPENAI_MODEL
     
     async def get_chat_history(
         self,

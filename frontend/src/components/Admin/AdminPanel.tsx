@@ -1,10 +1,11 @@
-import { Routes, Route, Link, useNavigate } from 'react-router-dom'
+import { Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import UserManagement from './UserManagement'
 import MCPServers from './MCPServers'
 import ToolSettings from './ToolSettings'
 
 export default function AdminPanel() {
   const navigate = useNavigate()
+  const location = useLocation()
 
   return (
     <div className="admin-panel">
@@ -16,9 +17,24 @@ export default function AdminPanel() {
       </header>
 
       <nav className="admin-nav">
-        <Link to="/admin/users" className="admin-nav-link">Пользователи</Link>
-        <Link to="/admin/servers" className="admin-nav-link">MCP Серверы</Link>
-        <Link to="/admin/tools" className="admin-nav-link">Инструменты</Link>
+        <NavLink 
+          to="/admin/users" 
+          className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}
+        >
+          Пользователи
+        </NavLink>
+        <NavLink 
+          to="/admin/servers" 
+          className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}
+        >
+          MCP Серверы
+        </NavLink>
+        <NavLink 
+          to="/admin/tools" 
+          className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}
+        >
+          Инструменты
+        </NavLink>
       </nav>
 
       <div className="admin-content">
