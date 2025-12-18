@@ -86,7 +86,8 @@ npm run dev
 ## Пример запроса в чат
 ![chat_example](chat_example.png)
 
-
+## Пример работы с инструментом
+![mcp_tool](mcp_tool.png)
 
 ## MCP Сервер Bitrix24
 
