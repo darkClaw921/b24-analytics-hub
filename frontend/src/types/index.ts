@@ -38,6 +38,7 @@ export interface MCPTool {
   custom_name?: string
   custom_description?: string
   parameter_display_names?: Record<string, string>  // {"original_param": "display_name"}
+  hidden_parameters?: string[]  // ["param1", "param2"] - список скрытых параметров
   is_active: boolean
   is_popular: boolean
 }
@@ -49,6 +50,7 @@ export interface ToolMetadata {
   display_description?: string  // Кастомное описание для визуального отображения
   parameters: Record<string, any>
   parameter_display_names?: Record<string, string>  // {"original_param": "display_name"}
+  hidden_parameters?: string[]  // ["param1", "param2"] - список скрытых параметров
   server_name?: string
 }
 

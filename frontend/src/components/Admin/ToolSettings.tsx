@@ -45,6 +45,7 @@ export default function ToolSettings() {
   const [editingParametersTool, setEditingParametersTool] = useState<number | null>(null)
   const [toolParameters, setToolParameters] = useState<Record<string, any>>({})
   const [parameterDisplayNames, setParameterDisplayNames] = useState<Record<string, string>>({})
+  const [hiddenParameters, setHiddenParameters] = useState<string[]>([])
   const [loadingParameters, setLoadingParameters] = useState(false)
 
   useEffect(() => {
@@ -133,6 +134,7 @@ export default function ToolSettings() {
   const startEditParameters = async (tool: MCPTool) => {
     setEditingParametersTool(tool.id)
     setParameterDisplayNames(tool.parameter_display_names || {})
+    setHiddenParameters(tool.hidden_parameters || [])
     setLoadingParameters(true)
     setToolParameters({})
     
@@ -175,6 +177,7 @@ export default function ToolSettings() {
     setEditingParametersTool(null)
     setToolParameters({})
     setParameterDisplayNames({})
+    setHiddenParameters([])
     setLoadingParameters(false)
   }
 
@@ -188,6 +191,16 @@ export default function ToolSettings() {
         delete updated[originalName]
       }
       return updated
+    })
+  }
+
+  const toggleHiddenParameter = (paramName: string) => {
+    setHiddenParameters(prev => {
+      if (prev.includes(paramName)) {
+        return prev.filter(p => p !== paramName)
+      } else {
+        return [...prev, paramName]
+      }
     })
   }
 
@@ -218,11 +231,13 @@ export default function ToolSettings() {
       })
       
       await api.put(`/admin/mcp/tools/${id}`, {
-        parameter_display_names: Object.keys(cleanedDisplayNames).length > 0 ? cleanedDisplayNames : null
+        parameter_display_names: Object.keys(cleanedDisplayNames).length > 0 ? cleanedDisplayNames : null,
+        hidden_parameters: hiddenParameters.length > 0 ? hiddenParameters : null
       })
       setEditingParametersTool(null)
       setToolParameters({})
       setParameterDisplayNames({})
+      setHiddenParameters([])
       loadTools()
     } catch (error) {
       alert('Ошибка сохранения параметров')
@@ -363,10 +378,20 @@ export default function ToolSettings() {
                 <div className="parameters-edit-grid">
                   {Object.entries(toolParameters).map(([paramName, paramInfo]) => (
                     <div key={paramName} className="parameter-edit-item">
-                      <label className="parameter-label">
-                        <span className="parameter-original">Оригинальное название:</span>
-                        <strong>{paramName}</strong>
-                      </label>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <label className="parameter-label">
+                          <span className="parameter-original">Оригинальное название:</span>
+                          <strong>{paramName}</strong>
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={hiddenParameters.includes(paramName)}
+                            onChange={() => toggleHiddenParameter(paramName)}
+                          />
+                          <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Скрыть</span>
+                        </label>
+                      </div>
                       {paramInfo && typeof paramInfo === 'object' && paramInfo.description && (
                         <div className="parameter-description">{paramInfo.description}</div>
                       )}
@@ -376,6 +401,8 @@ export default function ToolSettings() {
                         onChange={(e) => updateParameterDisplayName(paramName, e.target.value)}
                         placeholder={`Введите визуальное название для ${paramName}`}
                         className="parameter-input"
+                        disabled={hiddenParameters.includes(paramName)}
+                        style={{ opacity: hiddenParameters.includes(paramName) ? 0.5 : 1 }}
                       />
                     </div>
                   ))}

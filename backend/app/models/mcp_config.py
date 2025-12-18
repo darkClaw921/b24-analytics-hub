@@ -45,6 +45,7 @@ class MCPTool(Base):
     custom_name = Column(String(255), nullable=True)
     custom_description = Column(Text, nullable=True)
     parameter_display_names = Column(Text, nullable=True)  # JSON: {"original_param": "display_name"}
+    hidden_parameters = Column(Text, nullable=True)  # JSON: ["param1", "param2"] - список скрытых параметров
     is_active = Column(Boolean, default=True, nullable=False)
     is_popular = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

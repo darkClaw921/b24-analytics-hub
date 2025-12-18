@@ -601,9 +601,58 @@ body {
 
 /* Tool Buttons */
 .tool-buttons {
-  padding: 20px;
+  position: relative;
   border-top: 1px solid var(--border-color);
   background: var(--bg-card);
+  transition: all 0.3s ease;
+  overflow: hidden;
+  max-height: 60px;
+  cursor: pointer;
+}
+
+.tool-buttons:hover,
+.tool-buttons.tool-buttons-visible {
+  max-height: 500px;
+}
+
+.tool-buttons-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  color: var(--text-secondary);
+  font-size: 18px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tool-buttons-indicator:hover {
+  color: var(--accent-primary);
+}
+
+.tool-buttons:hover .tool-buttons-indicator,
+.tool-buttons.tool-buttons-visible .tool-buttons-indicator {
+  opacity: 0;
+  height: 0;
+  padding: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.tool-buttons-content {
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: opacity 0.3s ease, max-height 0.3s ease, padding 0.3s ease;
+  padding: 0 20px;
+}
+
+.tool-buttons:hover .tool-buttons-content,
+.tool-buttons.tool-buttons-visible .tool-buttons-content {
+  opacity: 1;
+  max-height: 500px;
+  padding: 20px;
 }
 
 .tool-buttons h4 {

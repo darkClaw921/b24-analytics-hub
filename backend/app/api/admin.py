@@ -317,6 +317,7 @@ class MCPToolUpdate(BaseModel):
     custom_name: Optional[str] = None
     custom_description: Optional[str] = None
     parameter_display_names: Optional[dict] = None  # {"original_param": "display_name"}
+    hidden_parameters: Optional[list] = None  # ["param1", "param2"] - список скрытых параметров
 
 
 class MCPToolResponse(BaseModel):
@@ -327,6 +328,7 @@ class MCPToolResponse(BaseModel):
     custom_name: Optional[str]
     custom_description: Optional[str]
     parameter_display_names: Optional[dict] = None
+    hidden_parameters: Optional[list] = None
     is_active: bool
     is_popular: bool
     
@@ -376,7 +378,7 @@ async def get_mcp_tools(current_admin: CurrentAdminUser, db: DBSession):
         else:
             raise
     
-    # Convert parameter_display_names from JSON string to dict
+    # Convert parameter_display_names and hidden_parameters from JSON string to dict/list
     tools_list = []
     for tool in tools:
         # Use getattr in case migration not applied or tool is a proxy object
@@ -389,6 +391,15 @@ async def get_mcp_tools(current_admin: CurrentAdminUser, db: DBSession):
                 logger.warning(f"Error parsing parameter_display_names for tool {getattr(tool, 'tool_name', 'unknown')}: {e}")
                 param_display_names_dict = None
         
+        hidden_params = getattr(tool, 'hidden_parameters', None)
+        hidden_params_list = None
+        if hidden_params:
+            try:
+                hidden_params_list = json.loads(hidden_params)
+            except (json.JSONDecodeError, TypeError) as e:
+                logger.warning(f"Error parsing hidden_parameters for tool {getattr(tool, 'tool_name', 'unknown')}: {e}")
+                hidden_params_list = None
+        
         tool_dict = {
             "id": tool.id,
             "server_id": tool.server_id,
@@ -397,6 +408,7 @@ async def get_mcp_tools(current_admin: CurrentAdminUser, db: DBSession):
             "custom_name": tool.custom_name,
             "custom_description": tool.custom_description,
             "parameter_display_names": param_display_names_dict,
+            "hidden_parameters": hidden_params_list,
             "is_active": tool.is_active,
             "is_popular": tool.is_popular,
         }
@@ -498,15 +510,29 @@ async def update_mcp_tool(
         if 'parameter_display_names' in str(e) or 'no such column' in str(e).lower():
             logger.warning(f"Migration may not be applied, using fallback query for tool {tool_id}")
             use_orm = False
-            # Use raw SQL to select without parameter_display_names
-            result = await db.execute(
-                text("""
-                    SELECT id, server_id, tool_name, tool_description, custom_name, 
-                           custom_description, is_active, is_popular, created_at
-                    FROM mcp_tools WHERE id = :tool_id
-                """),
-                {"tool_id": tool_id}
-            )
+            # Use raw SQL to select without parameter_display_names and hidden_parameters
+            # Try to select with hidden_parameters first, fallback if column doesn't exist
+            try:
+                result = await db.execute(
+                    text("""
+                        SELECT id, server_id, tool_name, tool_description, custom_name, 
+                               custom_description, is_active, is_popular, created_at, hidden_parameters
+                        FROM mcp_tools WHERE id = :tool_id
+                    """),
+                    {"tool_id": tool_id}
+                )
+                has_hidden_params_col = True
+            except Exception:
+                # Column doesn't exist yet, select without it
+                result = await db.execute(
+                    text("""
+                        SELECT id, server_id, tool_name, tool_description, custom_name, 
+                               custom_description, is_active, is_popular, created_at
+                        FROM mcp_tools WHERE id = :tool_id
+                    """),
+                    {"tool_id": tool_id}
+                )
+                has_hidden_params_col = False
             row = result.fetchone()
             if not row:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tool not found")
@@ -534,6 +560,13 @@ async def update_mcp_tool(
             else:
                 logger.warning(f"Field parameter_display_names not found for tool {tool.id}, migration may not be applied")
         
+        if tool_data.hidden_parameters is not None:
+            # Store as JSON string (use setattr in case migration not applied)
+            if hasattr(tool, 'hidden_parameters'):
+                tool.hidden_parameters = json.dumps(tool_data.hidden_parameters) if tool_data.hidden_parameters else None
+            else:
+                logger.warning(f"Field hidden_parameters not found for tool {tool.id}, migration may not be applied")
+        
         await db.commit()
         await db.refresh(tool)
         
@@ -546,6 +579,14 @@ async def update_mcp_tool(
             except (json.JSONDecodeError, TypeError):
                 param_display_names_dict = None
         
+        hidden_params = getattr(tool, 'hidden_parameters', None)
+        hidden_params_list = None
+        if hidden_params:
+            try:
+                hidden_params_list = json.loads(hidden_params)
+            except (json.JSONDecodeError, TypeError):
+                hidden_params_list = None
+        
         return {
             "id": tool.id,
             "server_id": tool.server_id,
@@ -554,11 +595,23 @@ async def update_mcp_tool(
             "custom_name": tool.custom_name,
             "custom_description": tool.custom_description,
             "parameter_display_names": param_display_names_dict,
+            "hidden_parameters": hidden_params_list,
             "is_active": tool.is_active,
             "is_popular": tool.is_popular,
         }
     else:
         # Use raw SQL for updates (migration not applied)
+        # Check if hidden_parameters column exists by trying to select it
+        has_hidden_params_col = False
+        try:
+            test_result = await db.execute(
+                text("SELECT hidden_parameters FROM mcp_tools LIMIT 1")
+            )
+            test_result.fetchone()
+            has_hidden_params_col = True
+        except Exception:
+            has_hidden_params_col = False
+        
         updates = []
         params = {"tool_id": tool_id}
         
@@ -574,6 +627,9 @@ async def update_mcp_tool(
         if tool_data.custom_description is not None:
             updates.append("custom_description = :custom_description")
             params["custom_description"] = tool_data.custom_description.strip() if tool_data.custom_description else None
+        if tool_data.hidden_parameters is not None and has_hidden_params_col:
+            updates.append("hidden_parameters = :hidden_parameters")
+            params["hidden_parameters"] = json.dumps(tool_data.hidden_parameters) if tool_data.hidden_parameters else None
         
         if updates:
             await db.execute(
@@ -583,17 +639,37 @@ async def update_mcp_tool(
             await db.commit()
         
         # Re-fetch the tool
-        result = await db.execute(
-            text("""
-                SELECT id, server_id, tool_name, tool_description, custom_name, 
-                       custom_description, is_active, is_popular, created_at
-                FROM mcp_tools WHERE id = :tool_id
-            """),
-            {"tool_id": tool_id}
-        )
+        if has_hidden_params_col:
+            result = await db.execute(
+                text("""
+                    SELECT id, server_id, tool_name, tool_description, custom_name, 
+                           custom_description, is_active, is_popular, created_at, hidden_parameters
+                    FROM mcp_tools WHERE id = :tool_id
+                """),
+                {"tool_id": tool_id}
+            )
+        else:
+            result = await db.execute(
+                text("""
+                    SELECT id, server_id, tool_name, tool_description, custom_name, 
+                           custom_description, is_active, is_popular, created_at
+                    FROM mcp_tools WHERE id = :tool_id
+                """),
+                {"tool_id": tool_id}
+            )
         row = result.fetchone()
         if not row:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tool not found")
+        
+        # Check if hidden_parameters was included in the query
+        hidden_params = None
+        if has_hidden_params_col and len(row) > 9:  # hidden_parameters column exists
+            hidden_params_raw = row[9]
+            if hidden_params_raw:
+                try:
+                    hidden_params = json.loads(hidden_params_raw)
+                except (json.JSONDecodeError, TypeError):
+                    hidden_params = None
         
         return {
             "id": row[0],
@@ -603,6 +679,7 @@ async def update_mcp_tool(
             "custom_name": row[4],
             "custom_description": row[5],
             "parameter_display_names": None,  # Column doesn't exist yet
+            "hidden_parameters": hidden_params,
             "is_active": bool(row[6]),
             "is_popular": bool(row[7]),
         }

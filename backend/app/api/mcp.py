@@ -30,6 +30,7 @@ class ToolMetadata(BaseModel):
     display_description: Optional[str] = None  # Кастомное описание для визуального отображения
     parameters: Dict[str, Any]
     parameter_display_names: Optional[Dict[str, str]] = None  # {"original_param": "display_name"}
+    hidden_parameters: Optional[List[str]] = None  # ["param1", "param2"] - список скрытых параметров
     server_name: Optional[str] = None
 
 
@@ -73,6 +74,7 @@ async def get_tools(current_user: CurrentUser, db: DBSession):
                     tool.is_popular = row[7]
                     tool.created_at = row[8]
                     tool.parameter_display_names = None
+                    tool.hidden_parameters = None
                     popular_tools.append(tool)
             else:
                 raise
@@ -125,9 +127,21 @@ async def get_tools(current_user: CurrentUser, db: DBSession):
                             tool_with_server["parameter_display_names"] = {}
                     else:
                         tool_with_server["parameter_display_names"] = {}
+                    
+                    # Add hidden parameters (use getattr in case migration not applied)
+                    hidden_params = getattr(db_tool, 'hidden_parameters', None)
+                    if hidden_params:
+                        try:
+                            tool_with_server["hidden_parameters"] = json.loads(hidden_params)
+                        except (json.JSONDecodeError, TypeError) as e:
+                            logger.warning(f"Error parsing hidden_parameters for tool {tool['name']}: {e}")
+                            tool_with_server["hidden_parameters"] = []
+                    else:
+                        tool_with_server["hidden_parameters"] = []
                 else:
-                    # If db_tool not found, set empty parameter_display_names
+                    # If db_tool not found, set empty parameter_display_names and hidden_parameters
                     tool_with_server["parameter_display_names"] = {}
+                    tool_with_server["hidden_parameters"] = []
                 
                 popular_metadata.append(tool_with_server)
         

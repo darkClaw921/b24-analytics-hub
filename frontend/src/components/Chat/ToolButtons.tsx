@@ -22,6 +22,7 @@ export default function ToolButtons({ chatId, onToolResult }: ToolButtonsProps) 
   const [selectedTool, setSelectedTool] = useState<ToolMetadata | null>(null)
   const [toolArgs, setToolArgs] = useState<Record<string, any>>({})
   const [loading, setLoading] = useState(false)
+  const [isHovered, setIsHovered] = useState(false)
 
   useEffect(() => {
     loadTools()
@@ -243,18 +244,27 @@ export default function ToolButtons({ chatId, onToolResult }: ToolButtonsProps) 
   }
 
   return (
-    <div className="tool-buttons">
-      <h4>Быстрые инструменты:</h4>
-      <div className="tool-list">
-        {tools.map((tool) => (
-          <button
-            key={tool.name}
-            className="btn btn-tool"
-            onClick={() => handleToolSelect(tool)}
-          >
-            {tool.display_name || tool.name}
-          </button>
-        ))}
+    <div 
+      className={`tool-buttons ${isHovered ? 'tool-buttons-visible' : ''}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="tool-buttons-indicator">
+        <span>⚡</span>
+      </div>
+      <div className="tool-buttons-content">
+        <h4>Быстрые инструменты:</h4>
+        <div className="tool-list">
+          {tools.map((tool) => (
+            <button
+              key={tool.name}
+              className="btn btn-tool"
+              onClick={() => handleToolSelect(tool)}
+            >
+              {tool.display_name || tool.name}
+            </button>
+          ))}
+        </div>
       </div>
 
       {selectedTool && (
@@ -268,8 +278,13 @@ export default function ToolButtons({ chatId, onToolResult }: ToolButtonsProps) 
               {(() => {
                 const parsedParams = parseParameters(selectedTool.parameters)
                 console.log('Rendering parameters:', parsedParams)
-                return parsedParams.length > 0 ? (
-                  parsedParams.map((param) => {
+                // Filter out hidden parameters for display
+                const hiddenParams = selectedTool.hidden_parameters || []
+                const visibleParams = parsedParams.filter(param => !hiddenParams.includes(param.name))
+                console.log('Hidden parameters:', hiddenParams)
+                console.log('Visible parameters:', visibleParams.map(p => p.name))
+                return visibleParams.length > 0 ? (
+                  visibleParams.map((param) => {
                     const displayName = getParamDisplayName(param.name)
                     return (
                   <div key={param.name} className="parameter-field">
