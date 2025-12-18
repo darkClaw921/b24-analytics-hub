@@ -197,11 +197,20 @@ body {
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   cursor: pointer;
   transition: all 0.3s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
 }
 
 .chat-item:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.chat-item-content {
+  flex: 1;
+  min-width: 0;
 }
 
 .chat-item h3 {
@@ -212,6 +221,21 @@ body {
 .chat-meta {
   color: #666;
   font-size: 14px;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 18px;
+  line-height: 1;
+  min-width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-danger:hover {
+  background-color: #e04d4d;
 }
 
 /* Chat Window */

@@ -179,10 +179,16 @@ export default function ToolSettings() {
   }
 
   const updateParameterDisplayName = (originalName: string, displayName: string) => {
-    setParameterDisplayNames(prev => ({
-      ...prev,
-      [originalName]: displayName.trim() || undefined
-    }))
+    setParameterDisplayNames(prev => {
+      const trimmed = displayName.trim()
+      const updated = { ...prev }
+      if (trimmed) {
+        updated[originalName] = trimmed  // trim only removes leading/trailing spaces, preserves internal spaces
+      } else {
+        delete updated[originalName]
+      }
+      return updated
+    })
   }
 
   const saveEdit = async (id: number) => {
@@ -202,10 +208,11 @@ export default function ToolSettings() {
 
   const saveParameters = async (id: number) => {
     try {
-      // Remove empty display names
+      // Remove empty display names (only trim leading/trailing spaces, preserve internal spaces)
       const cleanedDisplayNames: Record<string, string> = {}
       Object.entries(parameterDisplayNames).forEach(([key, value]) => {
-        if (value && value.trim()) {
+        if (value && typeof value === 'string' && value.trim().length > 0) {
+          // Only trim leading/trailing spaces, preserve all internal spaces
           cleanedDisplayNames[key] = value.trim()
         }
       })

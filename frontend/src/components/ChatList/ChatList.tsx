@@ -39,6 +39,23 @@ export default function ChatList() {
     }
   }
 
+  const deleteChat = async (chatId: number, e: React.MouseEvent) => {
+    e.stopPropagation() // Предотвращаем открытие чата при клике на кнопку удаления
+    
+    if (!window.confirm('Вы уверены, что хотите удалить этот чат?')) {
+      return
+    }
+
+    try {
+      await api.delete(`/chats/${chatId}`)
+      // Обновляем список чатов после удаления
+      await loadChats()
+    } catch (error) {
+      console.error('Error deleting chat:', error)
+      alert('Ошибка при удалении чата')
+    }
+  }
+
   return (
     <div className="chat-list-page">
       <header className="app-header">
@@ -95,10 +112,19 @@ export default function ChatList() {
                 className="chat-item"
                 onClick={() => navigate(`/chat/${chat.id}`)}
               >
-                <h3>{chat.title}</h3>
-                <p className="chat-meta">
-                  Токенов использовано: {chat.total_tokens}
-                </p>
+                <div className="chat-item-content">
+                  <h3>{chat.title}</h3>
+                  <p className="chat-meta">
+                    Токенов использовано: {chat.total_tokens}
+                  </p>
+                </div>
+                <button
+                  className="btn btn-danger btn-sm"
+                  onClick={(e) => deleteChat(chat.id, e)}
+                  title="Удалить чат"
+                >
+                  ×
+                </button>
               </div>
             ))}
           </div>

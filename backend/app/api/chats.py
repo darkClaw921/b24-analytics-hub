@@ -142,6 +142,7 @@ async def delete_chat(chat_id: int, current_user: CurrentUser, db: DBSession):
     if not chat:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat not found")
     
+    # Delete chat (cascade will delete messages and context automatically)
     await db.delete(chat)
     await db.commit()
     

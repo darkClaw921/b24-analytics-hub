@@ -136,9 +136,11 @@ async def call_tool_in_chat(
             display_args = {}
             for original_key, value in tool_data.arguments.items():
                 # Use visual name if available, otherwise use original
+                # Preserve all spaces in display names (they are already trimmed on save, but internal spaces preserved)
                 display_key = param_display_names.get(original_key, original_key)
                 display_args[display_key] = value
-            args_str = json.dumps(display_args, ensure_ascii=False)
+            # Use ensure_ascii=False to preserve Unicode characters and proper spacing
+            args_str = json.dumps(display_args, ensure_ascii=False, indent=None)
             user_message_content += f"\nПараметры: {args_str}"
         
         await chat_service.create_message(
