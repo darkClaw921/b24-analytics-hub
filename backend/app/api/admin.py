@@ -2,6 +2,7 @@
 Admin API endpoints
 """
 import logging
+import json
 from urllib.parse import urlparse
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, EmailStr, field_validator
@@ -315,6 +316,7 @@ class MCPToolUpdate(BaseModel):
     is_popular: Optional[bool] = None
     custom_name: Optional[str] = None
     custom_description: Optional[str] = None
+    parameter_display_names: Optional[dict] = None  # {"original_param": "display_name"}
 
 
 class MCPToolResponse(BaseModel):
@@ -324,6 +326,7 @@ class MCPToolResponse(BaseModel):
     tool_description: Optional[str]
     custom_name: Optional[str]
     custom_description: Optional[str]
+    parameter_display_names: Optional[dict] = None
     is_active: bool
     is_popular: bool
     
@@ -336,9 +339,141 @@ async def get_mcp_tools(current_admin: CurrentAdminUser, db: DBSession):
     """
     Get all MCP tools (admin only)
     """
-    result = await db.execute(select(MCPTool))
-    tools = result.scalars().all()
-    return tools
+    # Check if parameter_display_names column exists
+    try:
+        # Try to query with the column - if it fails, column doesn't exist
+        result = await db.execute(select(MCPTool))
+        tools = result.scalars().all()
+    except Exception as e:
+        if "no such column" in str(e).lower() or "parameter_display_names" in str(e):
+            # Column doesn't exist yet - use raw SQL to select without it
+            logger.warning("parameter_display_names column not found, using fallback query")
+            from sqlalchemy import text
+            result = await db.execute(text("""
+                SELECT id, server_id, tool_name, tool_description, 
+                       custom_name, custom_description, is_active, is_popular, created_at
+                FROM mcp_tools
+            """))
+            rows = result.all()
+            # Create MCPTool instances manually
+            tools = []
+            for row in rows:
+                # Create a simple object with the attributes
+                class ToolProxy:
+                    pass
+                tool = ToolProxy()
+                tool.id = row[0]
+                tool.server_id = row[1]
+                tool.tool_name = row[2]
+                tool.tool_description = row[3]
+                tool.custom_name = row[4]
+                tool.custom_description = row[5]
+                tool.is_active = row[6]
+                tool.is_popular = row[7]
+                tool.created_at = row[8]
+                tool.parameter_display_names = None
+                tools.append(tool)
+        else:
+            raise
+    
+    # Convert parameter_display_names from JSON string to dict
+    tools_list = []
+    for tool in tools:
+        # Use getattr in case migration not applied or tool is a proxy object
+        param_display_names = getattr(tool, 'parameter_display_names', None)
+        param_display_names_dict = None
+        if param_display_names:
+            try:
+                param_display_names_dict = json.loads(param_display_names)
+            except (json.JSONDecodeError, TypeError) as e:
+                logger.warning(f"Error parsing parameter_display_names for tool {getattr(tool, 'tool_name', 'unknown')}: {e}")
+                param_display_names_dict = None
+        
+        tool_dict = {
+            "id": tool.id,
+            "server_id": tool.server_id,
+            "tool_name": tool.tool_name,
+            "tool_description": tool.tool_description,
+            "custom_name": tool.custom_name,
+            "custom_description": tool.custom_description,
+            "parameter_display_names": param_display_names_dict,
+            "is_active": tool.is_active,
+            "is_popular": tool.is_popular,
+        }
+        tools_list.append(tool_dict)
+    
+    return tools_list
+
+
+@router.get("/mcp/tools/{tool_id}/parameters")
+async def get_tool_parameters(
+    tool_id: int,
+    current_admin: CurrentAdminUser,
+    db: DBSession
+):
+    """
+    Get tool parameters schema from MCP service (admin only)
+    """
+    # Check if parameter_display_names column exists
+    try:
+        result = await db.execute(select(MCPTool).where(MCPTool.id == tool_id))
+        tool = result.scalar_one_or_none()
+    except Exception as e:
+        if "no such column" in str(e).lower() or "parameter_display_names" in str(e):
+            # Column doesn't exist yet - use raw SQL to select without it
+            logger.warning("parameter_display_names column not found, using fallback query")
+            from sqlalchemy import text
+            result = await db.execute(text("""
+                SELECT id, server_id, tool_name, tool_description, 
+                       custom_name, custom_description, is_active, is_popular, created_at
+                FROM mcp_tools
+                WHERE id = :tool_id
+            """), {"tool_id": tool_id})
+            row = result.first()
+            if not row:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tool not found")
+            
+            # Create a simple object with the attributes
+            class ToolProxy:
+                pass
+            tool = ToolProxy()
+            tool.id = row[0]
+            tool.server_id = row[1]
+            tool.tool_name = row[2]
+            tool.tool_description = row[3]
+            tool.custom_name = row[4]
+            tool.custom_description = row[5]
+            tool.is_active = row[6]
+            tool.is_popular = row[7]
+            tool.created_at = row[8]
+        else:
+            raise
+    
+    if not tool:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tool not found")
+    
+    # Get server
+    server_result = await db.execute(select(MCPServer).where(MCPServer.id == tool.server_id))
+    server = server_result.scalar_one_or_none()
+    
+    if not server:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Server not found")
+    
+    # Get tool metadata from MCP service
+    try:
+        all_metadata = await mcp_service.get_tool_metadata(server.name)
+        tool_metadata = next((t for t in all_metadata if t["name"] == tool.tool_name), None)
+        
+        if not tool_metadata:
+            logger.warning(f"Tool metadata not found for tool_id={tool_id}, tool_name={tool.tool_name}")
+            return {"parameters": {}}
+        
+        params = tool_metadata.get("parameters", {})
+        logger.debug(f"Found parameters for tool {tool.tool_name}: {params}")
+        return {"parameters": params}
+    except Exception as e:
+        logger.error(f"Error getting tool parameters for tool_id={tool_id}: {e}", exc_info=True)
+        return {"parameters": {}}
 
 
 @router.put("/mcp/tools/{tool_id}", response_model=MCPToolResponse)
@@ -351,25 +486,126 @@ async def update_mcp_tool(
     """
     Update MCP tool settings (admin only)
     """
-    result = await db.execute(select(MCPTool).where(MCPTool.id == tool_id))
-    tool = result.scalar_one_or_none()
+    import sqlite3
+    from sqlalchemy import text
     
-    if not tool:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tool not found")
+    try:
+        result = await db.execute(select(MCPTool).where(MCPTool.id == tool_id))
+        tool = result.scalar_one_or_none()
+        use_orm = True
+    except (sqlite3.OperationalError, Exception) as e:
+        # Fallback if column doesn't exist (migration not applied)
+        if 'parameter_display_names' in str(e) or 'no such column' in str(e).lower():
+            logger.warning(f"Migration may not be applied, using fallback query for tool {tool_id}")
+            use_orm = False
+            # Use raw SQL to select without parameter_display_names
+            result = await db.execute(
+                text("""
+                    SELECT id, server_id, tool_name, tool_description, custom_name, 
+                           custom_description, is_active, is_popular, created_at
+                    FROM mcp_tools WHERE id = :tool_id
+                """),
+                {"tool_id": tool_id}
+            )
+            row = result.fetchone()
+            if not row:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tool not found")
+            tool = None  # Will use raw SQL for updates
+        else:
+            raise
     
-    if tool_data.is_active is not None:
-        tool.is_active = tool_data.is_active
-    if tool_data.is_popular is not None:
-        tool.is_popular = tool_data.is_popular
-    if tool_data.custom_name is not None:
-        tool.custom_name = tool_data.custom_name.strip() if tool_data.custom_name else None
-    if tool_data.custom_description is not None:
-        tool.custom_description = tool_data.custom_description.strip() if tool_data.custom_description else None
-    
-    await db.commit()
-    await db.refresh(tool)
-    
-    return tool
+    if use_orm:
+        if not tool:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tool not found")
+        
+        # Normal ORM update
+        if tool_data.is_active is not None:
+            tool.is_active = tool_data.is_active
+        if tool_data.is_popular is not None:
+            tool.is_popular = tool_data.is_popular
+        if tool_data.custom_name is not None:
+            tool.custom_name = tool_data.custom_name.strip() if tool_data.custom_name else None
+        if tool_data.custom_description is not None:
+            tool.custom_description = tool_data.custom_description.strip() if tool_data.custom_description else None
+        if tool_data.parameter_display_names is not None:
+            # Store as JSON string (use setattr in case migration not applied)
+            if hasattr(tool, 'parameter_display_names'):
+                tool.parameter_display_names = json.dumps(tool_data.parameter_display_names) if tool_data.parameter_display_names else None
+            else:
+                logger.warning(f"Field parameter_display_names not found for tool {tool.id}, migration may not be applied")
+        
+        await db.commit()
+        await db.refresh(tool)
+        
+        # Build response
+        param_display_names = getattr(tool, 'parameter_display_names', None)
+        param_display_names_dict = None
+        if param_display_names:
+            try:
+                param_display_names_dict = json.loads(param_display_names)
+            except (json.JSONDecodeError, TypeError):
+                param_display_names_dict = None
+        
+        return {
+            "id": tool.id,
+            "server_id": tool.server_id,
+            "tool_name": tool.tool_name,
+            "tool_description": tool.tool_description,
+            "custom_name": tool.custom_name,
+            "custom_description": tool.custom_description,
+            "parameter_display_names": param_display_names_dict,
+            "is_active": tool.is_active,
+            "is_popular": tool.is_popular,
+        }
+    else:
+        # Use raw SQL for updates (migration not applied)
+        updates = []
+        params = {"tool_id": tool_id}
+        
+        if tool_data.is_active is not None:
+            updates.append("is_active = :is_active")
+            params["is_active"] = tool_data.is_active
+        if tool_data.is_popular is not None:
+            updates.append("is_popular = :is_popular")
+            params["is_popular"] = tool_data.is_popular
+        if tool_data.custom_name is not None:
+            updates.append("custom_name = :custom_name")
+            params["custom_name"] = tool_data.custom_name.strip() if tool_data.custom_name else None
+        if tool_data.custom_description is not None:
+            updates.append("custom_description = :custom_description")
+            params["custom_description"] = tool_data.custom_description.strip() if tool_data.custom_description else None
+        
+        if updates:
+            await db.execute(
+                text(f"UPDATE mcp_tools SET {', '.join(updates)} WHERE id = :tool_id"),
+                params
+            )
+            await db.commit()
+        
+        # Re-fetch the tool
+        result = await db.execute(
+            text("""
+                SELECT id, server_id, tool_name, tool_description, custom_name, 
+                       custom_description, is_active, is_popular, created_at
+                FROM mcp_tools WHERE id = :tool_id
+            """),
+            {"tool_id": tool_id}
+        )
+        row = result.fetchone()
+        if not row:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tool not found")
+        
+        return {
+            "id": row[0],
+            "server_id": row[1],
+            "tool_name": row[2],
+            "tool_description": row[3],
+            "custom_name": row[4],
+            "custom_description": row[5],
+            "parameter_display_names": None,  # Column doesn't exist yet
+            "is_active": bool(row[6]),
+            "is_popular": bool(row[7]),
+        }
 
 
 @router.post("/mcp/servers/{server_id}/sync-tools")

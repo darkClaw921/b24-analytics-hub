@@ -31,13 +31,17 @@ export default function ToolButtons({ chatId, onToolResult }: ToolButtonsProps) 
     try {
       const response = await api.get<ToolMetadata[]>('/mcp/tools')
       // API already returns only popular tools
-      setTools(response.data)
-    } catch (error) {
+      console.log('Loaded tools:', response.data)
+      console.log('First tool parameter_display_names:', response.data?.[0]?.parameter_display_names)
+      setTools(response.data || [])
+    } catch (error: any) {
       console.error('Error loading tools:', error)
+      console.error('Error details:', error.response?.data)
+      setTools([])
     }
   }
 
-  const isDateParameter = (name: string, type: string, format?: string, description?: string): boolean => {
+  const isDateParameter = (name: string, _type: string, format?: string, description?: string): boolean => {
     // Check format in JSON Schema
     if (format === 'date' || format === 'date-time') {
       return true
@@ -139,7 +143,7 @@ export default function ToolButtons({ chatId, onToolResult }: ToolButtonsProps) 
     // Handle simple object format (direct parameter definitions)
     return Object.keys(params).map(name => {
       const value = params[name]
-      let paramType = typeof value
+      let paramType: string | 'array' | 'object' = typeof value as string
       if (Array.isArray(value)) {
         paramType = 'array'
       } else if (value !== null && typeof value === 'object') {
@@ -162,6 +166,7 @@ export default function ToolButtons({ chatId, onToolResult }: ToolButtonsProps) 
   const handleToolSelect = (tool: ToolMetadata) => {
     console.log('Selected tool:', tool)
     console.log('Tool parameters:', tool.parameters)
+    console.log('Tool parameter_display_names:', tool.parameter_display_names)
     setSelectedTool(tool)
     // Initialize args with defaults
     const params = parseParameters(tool.parameters)
@@ -193,10 +198,21 @@ export default function ToolButtons({ chatId, onToolResult }: ToolButtonsProps) 
     setToolArgs(initialArgs)
   }
 
-  const updateArg = (name: string, value: any) => {
+  // Get display name for parameter (or original if no custom name)
+  const getParamDisplayName = (originalName: string): string => {
+    if (!selectedTool?.parameter_display_names) {
+      console.log(`No parameter_display_names for tool ${selectedTool?.name}, using original name: ${originalName}`)
+      return originalName
+    }
+    const displayName = selectedTool.parameter_display_names[originalName] || originalName
+    console.log(`Parameter ${originalName} -> display name: ${displayName}`)
+    return displayName
+  }
+
+  const updateArg = (originalName: string, value: any) => {
     setToolArgs(prev => ({
       ...prev,
-      [name]: value
+      [originalName]: value
     }))
   }
 
@@ -206,6 +222,7 @@ export default function ToolButtons({ chatId, onToolResult }: ToolButtonsProps) 
     try {
       setLoading(true)
       
+      // toolArgs already uses original parameter names, so we can send it directly
       await api.post(`/chats/${chatId}/call-tool`, {
         server_name: selectedTool.server_name || 'bitrix24-main',
         tool_name: selectedTool.name,
@@ -252,10 +269,12 @@ export default function ToolButtons({ chatId, onToolResult }: ToolButtonsProps) 
                 const parsedParams = parseParameters(selectedTool.parameters)
                 console.log('Rendering parameters:', parsedParams)
                 return parsedParams.length > 0 ? (
-                  parsedParams.map((param) => (
+                  parsedParams.map((param) => {
+                    const displayName = getParamDisplayName(param.name)
+                    return (
                   <div key={param.name} className="parameter-field">
                     <label htmlFor={`param-${param.name}`}>
-                      {param.name}
+                      {displayName}
                       {param.required && <span className="required">*</span>}
                     </label>
                     {param.description && (
@@ -348,7 +367,8 @@ export default function ToolButtons({ chatId, onToolResult }: ToolButtonsProps) 
                       />
                     )}
                   </div>
-                  ))
+                  )
+                  })
                 ) : (
                   <p className="no-parameters">Этот инструмент не требует параметров</p>
                 )

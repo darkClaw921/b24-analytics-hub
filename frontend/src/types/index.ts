@@ -37,6 +37,7 @@ export interface MCPTool {
   tool_description?: string
   custom_name?: string
   custom_description?: string
+  parameter_display_names?: Record<string, string>  // {"original_param": "display_name"}
   is_active: boolean
   is_popular: boolean
 }
@@ -47,6 +48,7 @@ export interface ToolMetadata {
   display_name?: string  // Кастомное имя для визуального отображения
   display_description?: string  // Кастомное описание для визуального отображения
   parameters: Record<string, any>
+  parameter_display_names?: Record<string, string>  // {"original_param": "display_name"}
   server_name?: string
 }
 

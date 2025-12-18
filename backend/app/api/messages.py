@@ -1,16 +1,20 @@
 """
 Messages API endpoints
 """
+import json
+import logging
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from sqlalchemy import select
 
 from app.dependencies import CurrentUser, DBSession
-from app.models import Chat, MessageRole
+from app.models import Chat, MessageRole, MCPTool
 from app.services.chat_service import chat_service
 from app.services.mcp_service import mcp_service
 from app.services.token_service import token_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/chats", tags=["messages"])
 
@@ -86,21 +90,55 @@ async def call_tool_in_chat(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat not found")
     
     try:
-        # Call tool through MCP
+        # IMPORTANT: Call tool through MCP with ORIGINAL data (tool_name and arguments keys)
+        # Original tool_name and original parameter names are sent to backend
         tool_result = await mcp_service.call_tool(
             tool_data.server_name,
-            tool_data.tool_name,
-            tool_data.arguments
+            tool_data.tool_name,  # Original tool name sent to MCP
+            tool_data.arguments   # Original parameter names sent to MCP
         )
         
         # Format result to extract text content
         formatted_result = chat_service._format_mcp_result(tool_result)
         
-        # Create user message describing the tool call
-        user_message_content = f"Вызов инструмента: {tool_data.tool_name}"
+        # Get tool display name and parameter display names from database for VISUAL DISPLAY ONLY
+        # These are used only for user-facing messages, not for actual tool calls
+        tool_display_name = tool_data.tool_name
+        param_display_names = {}
+        try:
+            result = await db.execute(
+                select(MCPTool).where(
+                    MCPTool.tool_name == tool_data.tool_name,
+                    MCPTool.is_active == True
+                )
+            )
+            db_tool = result.scalar_one_or_none()
+            if db_tool:
+                # Get custom name for tool display (visual only)
+                if db_tool.custom_name:
+                    tool_display_name = db_tool.custom_name
+                
+                # Get parameter display names (visual only)
+                param_display_names_raw = getattr(db_tool, 'parameter_display_names', None)
+                if param_display_names_raw:
+                    try:
+                        param_display_names = json.loads(param_display_names_raw)
+                    except (json.JSONDecodeError, TypeError) as e:
+                        logger.warning(f"Error parsing parameter_display_names for tool {tool_data.tool_name}: {e}")
+        except Exception as e:
+            logger.warning(f"Error loading tool display data: {e}")
+        
+        # Create user message describing the tool call with VISUAL tool name and parameter names
+        # This is only for display purposes - original data was already sent to MCP above
+        user_message_content = f"Вызов инструмента: {tool_display_name}"
         if tool_data.arguments:
-            import json
-            args_str = json.dumps(tool_data.arguments, ensure_ascii=False)
+            # Create display version of arguments with visual parameter names (for user message only)
+            display_args = {}
+            for original_key, value in tool_data.arguments.items():
+                # Use visual name if available, otherwise use original
+                display_key = param_display_names.get(original_key, original_key)
+                display_args[display_key] = value
+            args_str = json.dumps(display_args, ensure_ascii=False)
             user_message_content += f"\nПараметры: {args_str}"
         
         await chat_service.create_message(
@@ -114,13 +152,15 @@ async def call_tool_in_chat(
         # Save tool result message (just the formatted text, no markdown wrapper)
         tool_message_content = formatted_result
         
+        # IMPORTANT: Save ORIGINAL tool_name and ORIGINAL arguments to database
+        # Visual names are only used in user message above
         await chat_service.create_message(
             db,
             chat_id,
             MessageRole.TOOL,
             tool_message_content,
-            tool_name=tool_data.tool_name,
-            tool_arguments=tool_data.arguments,
+            tool_name=tool_data.tool_name,      # Original tool name saved
+            tool_arguments=tool_data.arguments,  # Original parameter names saved
             tokens_used=token_service.count_tokens(tool_message_content)
         )
         
