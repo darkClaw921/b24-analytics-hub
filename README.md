@@ -1,6 +1,14 @@
-# B24 Analytics Hub
 
+
+<p align="center">
+  <img src=".gitresources/logo2.png" alt="logo" width="100%" />
+</p>
+
+# B24 Analytics Hub
 Веб-приложение для аналитики данных из Bitrix24 с чатом LLM+MCP.
+
+
+
 
 ## Функциональность
 
@@ -8,10 +16,11 @@
 - **Прямой вызов инструментов**: кнопки для быстрого вызова популярных MCP инструментов
 - **Система авторизации**: JWT токены с автоматическим обновлением
 - **Админ-панель**: управление пользователями, MCP серверами и инструментами
+- **Управление инструментами**: добавление, редактирование, вкл/выкл инструментов, отметка популярных инструментов изменением названий и описаний для визуального отображения в быстрых инструментах, редактирование названий параметров, скрытие параметров от пользователя визуально
 - **Адаптивный дизайн**: стилизация в духе Bitrix24, поддержка мобильных устройств
 
 ## Технологии
-проект прежнозначен для развертывания через dokploy
+Проект предназначен для развертывания через docker compose.
 ### Backend
 - FastAPI
 - SQLAlchemy 2.0 (async)
@@ -25,9 +34,8 @@
 - React Router
 - Axios
 
-## Установка
+## Запуск
 
-### Backend
 
 1. Установить зависимости через uv:
 ```bash
@@ -36,7 +44,7 @@ uv sync
 
 2. Создать файл `.env` на основе `.env.example`:
 ```bash
-cp backend/.env.example backend/.env
+cp .env.example .env
 ```
 
 3. Заполнить `.env` файл:
@@ -44,44 +52,12 @@ cp backend/.env.example backend/.env
 - `JWT_SECRET_KEY` - секретный ключ для JWT (можно сгенерировать: `openssl rand -hex 32`)
 - `JWT_REFRESH_SECRET_KEY` - секретный ключ для refresh токенов (можно сгенерировать: `openssl rand -hex 32`)
 
-4. Инициализировать базу данных:
+4. Запустите docker compose:
 ```bash
-cd backend
-uv run alembic revision --autogenerate -m "Initial migration"
-uv run alembic upgrade head
+docker compose up -d --build
 ```
 
-5. Создать первого администратора:
-```bash
-cd backend
-uv run python create_admin.py
-```
-
-6. Запустить сервер:
-```bash
-cd backend
-uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
-```
-
-### Frontend
-
-1. Установить зависимости:
-```bash
-cd frontend
-npm install
-```
-
-2. Создать файл `.env`:
-```bash
-cp .env.example .env
-```
-
-3. Запустить dev-сервер:
-```bash
-npm run dev
-```
-
-Приложение будет доступно по адресу: http://localhost:3000
+Приложение будет доступно по адресу: http://localhost:3001
 
 ## Пример запроса в чат
 ![chat_example](chat_example.png)
@@ -97,26 +73,6 @@ npm run dev
 - Имя сервера: `bitrix24-main`
 
 Убедитесь, что MCP сервер Bitrix24 запущен перед использованием приложения.
-
-## Структура проекта
-
-```
-b24-analytics-hub/
-├── backend/           # FastAPI приложение
-│   ├── app/
-│   │   ├── api/      # API endpoints
-│   │   ├── models/   # SQLAlchemy модели
-│   │   └── services/ # Бизнес-логика
-│   ├── alembic/      # Миграции БД
-│   └── tests/
-├── frontend/         # React приложение
-│   └── src/
-│       ├── components/
-│       ├── services/
-│       ├── hooks/
-│       └── styles/
-└── pyproject.toml    # Python зависимости
-```
 
 ## Разработка
 

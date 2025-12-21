@@ -38,6 +38,86 @@ B24 Analytics Hub - веб-приложение для аналитики дан
 
 ## Структура проекта
 
+
+```
+b24-analytics-hub/
+├── backend/                    # FastAPI приложение
+│   ├── app/
+│   │   ├── api/                # API endpoints
+│   │   │   ├── admin.py        # Админ-панель endpoints
+│   │   │   ├── auth.py         # Авторизация endpoints
+│   │   │   ├── chats.py        # Чаты endpoints
+│   │   │   ├── mcp.py          # MCP инструменты endpoints
+│   │   │   ├── messages.py     # Сообщения endpoints
+│   │   │   └── users.py        # Пользователи endpoints
+│   │   ├── models/             # SQLAlchemy модели
+│   │   │   ├── chat.py         # Модели Chat, Message, ChatContext
+│   │   │   ├── mcp_config.py   # Модели MCPServer, MCPTool
+│   │   │   └── user.py         # Модель User
+│   │   ├── services/           # Бизнес-логика
+│   │   │   ├── chat_service.py # Логика чата с OpenAI и MCP
+│   │   │   ├── mcp_service.py  # Подключение к MCP серверам
+│   │   │   ├── token_service.py # Подсчет токенов
+│   │   │   └── user_service.py # CRUD пользователей
+│   │   ├── auth.py             # JWT токены, хеширование паролей
+│   │   ├── config.py           # Конфигурация приложения
+│   │   ├── database.py         # Настройка SQLAlchemy
+│   │   ├── dependencies.py     # FastAPI зависимости
+│   │   └── main.py             # FastAPI приложение, роутинг, WebSocket
+│   ├── alembic/                # Миграции БД
+│   │   ├── versions/           # Файлы миграций
+│   │   ├── env.py              # Конфигурация Alembic
+│   │   └── script.py.mako      # Шаблон миграций
+│   ├── tests/                  # Тесты
+│   ├── create_admin.py         # Скрипт создания администратора
+│   ├── Dockerfile              # Docker образ для backend
+│   ├── entrypoint.sh           # Скрипт запуска с миграциями
+│   ├── alembic.ini             # Конфигурация Alembic
+│   ├── pyproject.toml          # Python зависимости
+│   └── uv.lock                 # Lock файл зависимостей
+├── frontend/                   # React приложение
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── Admin/          # Компоненты админ-панели
+│   │   │   │   ├── AdminPanel.tsx # Главная панель администратора
+│   │   │   │   ├── MCPServers.tsx # Управление MCP серверами
+│   │   │   │   ├── ToolSettings.tsx # Управление инструментами
+│   │   │   │   └── UserManagement.tsx # Управление пользователями
+│   │   │   ├── Auth/           # Компоненты авторизации
+│   │   │   │   ├── Login.tsx # Форма входа
+│   │   │   │   └── ProtectedRoute.tsx # Защита роутов
+│   │   │   ├── Chat/           # Компоненты чата
+│   │   │   │   ├── ChatWindow.tsx # Окно чата
+│   │   │   │   ├── MessageInput.tsx # Поле ввода сообщений
+│   │   │   │   ├── MessageList.tsx # Список сообщений с автоскроллом
+│   │   │   │   ├── TokenCounter.tsx # Счетчик использованных токенов
+│   │   │   │   └── ToolButtons.tsx # Кнопки для прямого вызова MCP инструментов
+│   │   │   └── ChatList/       # Компонент списка чатов
+│   │   │       └── ChatList.tsx # Список чатов пользователя, создание новых чатов, удаление чатов с подтверждением
+│   │   ├── hooks/              # React хуки
+│   │   │   ├── useAuth.tsx     # Хук авторизации
+│   │   │   └── useChat.ts      # Хук работы с чатом
+│   │   ├── services/           # Сервисы для API
+│   │   │   ├── api.ts          # Axios клиент
+│   │   │   ├── auth.ts         # Сервис авторизации
+│   │   │   └── websocket.ts    # WebSocket подключение
+│   │   ├── styles/             # Стили
+│   │   │   └── bitrix24.css    # Основные стили приложения
+│   │   ├── types/              # TypeScript типы
+│   │   │   └── index.ts        # Определения типов
+│   │   ├── App.tsx             # Главный компонент приложения
+│   │   └── main.tsx            # Точка входа React
+│   ├── Dockerfile              # Docker образ для frontend
+│   ├── index.html              # HTML шаблон
+│   ├── package.json            # Node.js зависимости
+│   ├── package-lock.json       # Lock файл зависимостей
+│   ├── tsconfig.json           # TypeScript конфигурация
+│   ├── tsconfig.node.json      # TypeScript конфигурация для Node
+│   └── vite.config.ts          # Vite конфигурация
+├── docker-compose.yml          # Docker Compose конфигурация
+├── architecture.md             # Документация архитектуры
+└── README.md                   # Описание проекта
+```
 ### Backend (`/backend/app/`)
 
 #### Модели (`models/`)
