@@ -61,6 +61,9 @@ export default function ChatList() {
       <header className="app-header">
         <h1>B24 Analytics Hub</h1>
         <div className="header-actions">
+          <button className="btn btn-secondary" onClick={() => navigate('/dashboards')}>
+            Дашборды
+          </button>
           {user?.is_admin && (
             <button className="btn btn-secondary" onClick={() => navigate('/admin')}>
               Админ-панель

@@ -20,6 +20,7 @@ class User(Base):
 
     # Relationships
     chats = relationship("Chat", back_populates="user", cascade="all, delete-orphan")
+    dashboards = relationship("Dashboard", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<User(id={self.id}, username='{self.username}', is_admin={self.is_admin})>"

@@ -74,6 +74,11 @@ docker compose up -d --build
 
 Для разработки без Docker выполните следующие шаги:
 
+**Порядок запуска сервисов:**
+1. Python Executor Service (если планируете использовать дашборды)
+2. Backend
+3. Frontend
+
 ### Требования
 - Python 3.12+
 - Node.js 18+
@@ -101,6 +106,8 @@ uv sync
 - `MCP_BITRIX24_NAME` - имя MCP сервера (по умолчанию: `bitrix24-main`)
 - `MCP_BITRIX24_TRANSPORT` - транспорт MCP (по умолчанию: `streamable_http`)
 - `MCP_BITRIX24_AUTH_TOKEN` - токен авторизации MCP (если требуется)
+- `PYTHON_EXECUTOR_URL` - URL Python Executor Service (**обязательно для локальной разработки**: `http://localhost:8002`, по умолчанию для Docker: `http://python-executor:8002`)
+- `PYTHON_EXECUTOR_TIMEOUT` - таймаут выполнения кода в секундах (по умолчанию: `30`)
 
 4. Примените миграции базы данных:
 ```bash
@@ -142,9 +149,41 @@ npm run dev
 
 Frontend будет доступен по адресу: http://localhost:3000
 
+### Python Executor Service
+
+Python Executor Service - отдельный микросервис для безопасного выполнения Python кода, генерирующего данные для чартов в дашбордах.
+
+**Важно**: Python Executor Service должен быть запущен перед backend, если вы планируете использовать дашборды.
+
+1. Перейдите в директорию python-executor:
+```bash
+cd python-executor
+```
+
+2. Установите зависимости через uv:
+```bash
+uv sync
+```
+
+3. Запустите executor сервер:
+```bash
+uv run uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload
+```
+
+Python Executor Service будет доступен по адресу: http://localhost:8002
+
+**Обязательно**: Убедитесь, что в `.env` файле backend (в корне проекта) указан правильный URL для Python Executor:
+```bash
+PYTHON_EXECUTOR_URL=http://localhost:8002
+```
+
+Без этой настройки backend не сможет подключиться к Python Executor Service при локальной разработке.
+
 ### Важно
 
 - Убедитесь, что MCP сервер Bitrix24 запущен и доступен по адресу, указанному в `MCP_BITRIX24_URL`
+- **Python Executor Service должен быть запущен перед backend**, если вы планируете использовать дашборды
+- **Для локальной разработки обязательно установите `PYTHON_EXECUTOR_URL=http://localhost:8002` в `.env` файле backend**, иначе backend не сможет подключиться к Python Executor Service
 - Backend должен быть запущен перед frontend, так как frontend делает запросы к API
 - Для разработки используется режим `--reload` для автоматической перезагрузки при изменении кода
 
@@ -171,6 +210,7 @@ Frontend будет доступен по адресу: http://localhost:3000
 
 - `backend/` - FastAPI приложение с API и бизнес-логикой
 - `frontend/` - React приложение с TypeScript
+- `python-executor/` - Python Executor Service для безопасного выполнения кода чартов
 - `backend/alembic/` - миграции базы данных
 - `backend/app/` - основной код backend приложения
   - `api/` - API роутеры

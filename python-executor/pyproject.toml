@@ -1,0 +1,14 @@
+[project]
+name = "python-executor"
+version = "0.1.0"
+description = "Python code executor service for dashboard charts"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi==0.124.4",
+    "uvicorn==0.38.0",
+    "python-dotenv==1.2.1",
+    "pydantic>=2.12.5",
+    "restrictedpython==6.2",
+]
+

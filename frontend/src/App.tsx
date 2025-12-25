@@ -5,6 +5,8 @@ import ChatWindow from './components/Chat/ChatWindow'
 import ChatList from './components/ChatList/ChatList'
 import AdminPanel from './components/Admin/AdminPanel'
 import ProtectedRoute from './components/Auth/ProtectedRoute'
+import DashboardList from './components/Dashboard/DashboardList'
+import DashboardView from './components/Dashboard/DashboardView'
 
 function App() {
   return (
@@ -28,6 +30,18 @@ function App() {
           <Route path="/admin/*" element={
             <ProtectedRoute requireAdmin>
               <AdminPanel />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/dashboards" element={
+            <ProtectedRoute>
+              <DashboardList />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/dashboards/:dashboardId" element={
+            <ProtectedRoute>
+              <DashboardView />
             </ProtectedRoute>
           } />
           

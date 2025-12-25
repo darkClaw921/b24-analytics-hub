@@ -35,6 +35,10 @@ class Settings:
     MCP_BITRIX24_TRANSPORT: str = os.getenv("MCP_BITRIX24_TRANSPORT", "streamable_http")
     MCP_BITRIX24_AUTH_TOKEN: str = os.getenv("MCP_BITRIX24_AUTH_TOKEN", "")
     
+    # Python Executor
+    PYTHON_EXECUTOR_URL: str = os.getenv("PYTHON_EXECUTOR_URL", "http://python-executor:8002")
+    PYTHON_EXECUTOR_TIMEOUT: int = int(os.getenv("PYTHON_EXECUTOR_TIMEOUT", "30"))
+    
     def validate(self):
         """Validate required settings"""
         if not self.JWT_SECRET_KEY:

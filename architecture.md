@@ -2,7 +2,7 @@
 
 ## Общее описание
 
-B24 Analytics Hub - веб-приложение для аналитики данных из Bitrix24 с интеллектуальным чатом, использующим LLM и MCP инструменты.
+B24 Analytics Hub - веб-приложение для аналитики данных из Bitrix24 с интеллектуальным чатом, использующим LLM и MCP инструменты, и системой дашбордов с динамическими чартами.
 
 ## Технологический стек
 
@@ -15,12 +15,14 @@ B24 Analytics Hub - веб-приложение для аналитики дан
 - **tiktoken** - подсчет токенов
 - **python-jose** - JWT токены
 - **passlib** - хеширование паролей
+- **httpx** - HTTP клиент для связи с Python Executor Service
 
 ### Frontend
 - **React 18 + TypeScript** - UI фреймворк
 - **Vite** - сборщик и preview сервер для production
 - **React Router** - маршрутизация
 - **Axios** - HTTP клиент
+- **Recharts** - библиотека для визуализации чартов
 
 ### Docker
 - **Docker Compose** - оркестрация сервисов
@@ -35,6 +37,8 @@ B24 Analytics Hub - веб-приложение для аналитики дан
 - **chat_contexts** - контекст чатов (токены)
 - **mcp_servers** - конфигурация MCP серверов
 - **mcp_tools** - инструменты MCP
+- **dashboards** - дашборды пользователей
+- **charts** - чарты в дашбордах
 
 ## Структура проекта
 
@@ -49,16 +53,19 @@ b24-analytics-hub/
 │   │   │   ├── chats.py        # Чаты endpoints
 │   │   │   ├── mcp.py          # MCP инструменты endpoints
 │   │   │   ├── messages.py     # Сообщения endpoints
-│   │   │   └── users.py        # Пользователи endpoints
+│   │   │   ├── users.py        # Пользователи endpoints
+│   │   │   └── dashboards.py   # Дашборды и чарты endpoints
 │   │   ├── models/             # SQLAlchemy модели
 │   │   │   ├── chat.py         # Модели Chat, Message, ChatContext
 │   │   │   ├── mcp_config.py   # Модели MCPServer, MCPTool
-│   │   │   └── user.py         # Модель User
+│   │   │   ├── user.py         # Модель User
+│   │   │   └── dashboard.py    # Модели Dashboard, Chart
 │   │   ├── services/           # Бизнес-логика
 │   │   │   ├── chat_service.py # Логика чата с OpenAI и MCP
 │   │   │   ├── mcp_service.py  # Подключение к MCP серверам
 │   │   │   ├── token_service.py # Подсчет токенов
-│   │   │   └── user_service.py # CRUD пользователей
+│   │   │   ├── user_service.py # CRUD пользователей
+│   │   │   └── dashboard_service.py # CRUD дашбордов и чартов, выполнение Python кода
 │   │   ├── auth.py             # JWT токены, хеширование паролей
 │   │   ├── config.py           # Конфигурация приложения
 │   │   ├── database.py         # Настройка SQLAlchemy
@@ -75,6 +82,15 @@ b24-analytics-hub/
 │   ├── alembic.ini             # Конфигурация Alembic
 │   ├── pyproject.toml          # Python зависимости
 │   └── uv.lock                 # Lock файл зависимостей
+├── python-executor/            # Python Executor Service
+│   ├── app/
+│   │   ├── __init__.py
+│   │   ├── main.py            # FastAPI приложение для выполнения кода
+│   │   └── executor.py        # Логика безопасного выполнения Python кода
+│   ├── Dockerfile             # Docker образ для executor
+│   ├── entrypoint.sh          # Скрипт запуска
+│   ├── pyproject.toml         # Python зависимости (restrictedpython)
+│   └── uv.lock                # Lock файл зависимостей
 ├── frontend/                   # React приложение
 │   ├── src/
 │   │   ├── components/
@@ -92,15 +108,26 @@ b24-analytics-hub/
 │   │   │   │   ├── MessageList.tsx # Список сообщений с автоскроллом
 │   │   │   │   ├── TokenCounter.tsx # Счетчик использованных токенов
 │   │   │   │   └── ToolButtons.tsx # Кнопки для прямого вызова MCP инструментов
-│   │   │   └── ChatList/       # Компонент списка чатов
-│   │   │       └── ChatList.tsx # Список чатов пользователя, создание новых чатов, удаление чатов с подтверждением
+│   │   │   ├── ChatList/       # Компонент списка чатов
+│   │   │   │   └── ChatList.tsx # Список чатов пользователя, создание новых чатов, удаление чатов с подтверждением
+│   │   │   ├── Dashboard/      # Компоненты дашбордов
+│   │   │   │   ├── DashboardList.tsx # Список дашбордов пользователя
+│   │   │   │   ├── DashboardView.tsx # Просмотр дашборда с чартами
+│   │   │   │   ├── ChartComponent.tsx # Компонент отрисовки чарта
+│   │   │   │   └── ChartEditor.tsx # Редактор чарта с превью
+│   │   │   └── Charts/         # Компоненты чартов
+│   │   │       ├── LineChart.tsx # Линейный чарт
+│   │   │       ├── BarChart.tsx # Столбчатый чарт
+│   │   │       ├── PieChart.tsx # Круговой чарт
+│   │   │       └── ChartWrapper.tsx # Обертка для выбора типа чарта
 │   │   ├── hooks/              # React хуки
 │   │   │   ├── useAuth.tsx     # Хук авторизации
 │   │   │   └── useChat.ts      # Хук работы с чатом
 │   │   ├── services/           # Сервисы для API
 │   │   │   ├── api.ts          # Axios клиент
 │   │   │   ├── auth.ts         # Сервис авторизации
-│   │   │   └── websocket.ts    # WebSocket подключение
+│   │   │   ├── websocket.ts    # WebSocket подключение
+│   │   │   └── dashboards.ts  # Сервис для работы с дашбордами
 │   │   ├── styles/             # Стили
 │   │   │   └── bitrix24.css    # Основные стили приложения
 │   │   ├── types/              # TypeScript типы
@@ -124,12 +151,14 @@ b24-analytics-hub/
 - **user.py** - модель User для авторизации
 - **chat.py** - модели Chat, Message, ChatContext для чатов
 - **mcp_config.py** - модели MCPServer, MCPTool для MCP конфигурации (MCPTool содержит поля custom_name, custom_description для кастомного отображения в быстрых инструментах, parameter_display_names для кастомных названий параметров, hidden_parameters для скрытия параметров от пользователя визуально)
+- **dashboard.py** - модели Dashboard, Chart для дашбордов (Dashboard содержит user_id, title, description; Chart содержит dashboard_id, title, chart_type, python_code, position_x, position_y, width, height, config)
 
 #### Сервисы (`services/`)
 - **user_service.py** - CRUD операции с пользователями, аутентификация
 - **mcp_service.py** - подключение к MCP серверам через MultiServerMCPClient, кэширование инструментов, прямой вызов инструментов, синхронизация инструментов из MCP серверов в БД
 - **chat_service.py** - логика чата с OpenAI, вызов MCP tools через LLM, управление контекстом
 - **token_service.py** - подсчет токенов через tiktoken
+- **dashboard_service.py** - CRUD операции с дашбордами и чартами, вызов Python Executor Service для выполнения кода чартов
 
 #### API роуты (`api/`)
 - **auth.py** - авторизация (login, refresh token)
@@ -138,10 +167,11 @@ b24-analytics-hub/
 - **messages.py** - отправка сообщений в чат
 - **mcp.py** - получение списка инструментов, прямой вызов инструментов
 - **admin.py** - админ-панель (управление пользователями, MCP серверами, инструментами, синхронизация инструментов из MCP серверов)
+- **dashboards.py** - CRUD операции с дашбордами и чартами, выполнение кода чартов
 
 #### Основные файлы
 - **main.py** - FastAPI приложение, роутинг, WebSocket для чата
-- **config.py** - конфигурация приложения (переменные окружения, включая OPENAI_MODEL для выбора модели ChatGPT)
+- **config.py** - конфигурация приложения (переменные окружения, включая OPENAI_MODEL для выбора модели ChatGPT, PYTHON_EXECUTOR_URL и PYTHON_EXECUTOR_TIMEOUT для Python Executor Service)
 - **database.py** - настройка async SQLAlchemy, создание сессий
 - **auth.py** - JWT токены (создание, проверка), хеширование паролей
 - **dependencies.py** - FastAPI зависимости (get_current_user, get_current_admin_user)
@@ -172,10 +202,23 @@ b24-analytics-hub/
 - **MCPServers.tsx** - управление MCP серверами (CRUD, активация/деактивация)
 - **ToolSettings.tsx** - управление инструментами (активация, отметка популярных, редактирование кастомного имени и описания для визуального отображения, редактирование названий параметров, скрытие параметров от пользователя визуально)
 
+**Dashboard/**
+- **DashboardList.tsx** - список дашбордов пользователя, создание новых дашбордов, удаление дашбордов
+- **DashboardView.tsx** - просмотр дашборда с чартами в grid layout, добавление и удаление чартов
+- **ChartComponent.tsx** - компонент отрисовки чарта с кнопкой обновления данных
+- **ChartEditor.tsx** - модальное окно для создания/редактирования чарта с полями: title, chart_type, python_code, position, size, превью данных
+
+**Charts/**
+- **LineChart.tsx** - линейный чарт на основе Recharts
+- **BarChart.tsx** - столбчатый чарт на основе Recharts
+- **PieChart.tsx** - круговой чарт на основе Recharts
+- **ChartWrapper.tsx** - обертка для выбора типа чарта
+
 #### Сервисы (`services/`)
 - **api.ts** - Axios клиент с interceptors для автоматического добавления токенов и refresh
 - **auth.ts** - авторизация (login, refresh token, хранение в localStorage)
 - **websocket.ts** - WebSocket подключение к чату
+- **dashboards.ts** - функции для работы с API дашбордов (getDashboards, createDashboard, getDashboard, updateDashboard, deleteDashboard, createChart, updateChart, deleteChart, executeChart)
 
 #### Хуки (`hooks/`)
 - **useAuth.tsx** - AuthContext и хук для работы с авторизацией
@@ -185,7 +228,7 @@ b24-analytics-hub/
 - **bitrix24.css** - стили в духе Open WebUI (темная тема, современный дизайн, градиенты, адаптивность)
 
 #### Типы (`types/`)
-- **index.ts** - TypeScript типы (User, Chat, Message, MCPServer, MCPTool и т.д.)
+- **index.ts** - TypeScript типы (User, Chat, Message, MCPServer, MCPTool, Dashboard, Chart, ChartType, ChartData и т.д.)
 
 #### Docker файлы
 - **Dockerfile** - сборка React приложения и запуск через Vite preview сервер
@@ -223,6 +266,16 @@ b24-analytics-hub/
 - Подключение к `/ws/chats/{chat_id}`
 - Автоматическое переподключение при разрыве связи
 
+### Дашборды и чарты
+1. Пользователь создает дашборд с названием и описанием
+2. В дашборде можно создавать чарты разных типов (line, bar, pie)
+3. Для каждого чарта указывается Python код, который генерирует данные
+4. При просмотре дашборда код выполняется через Python Executor Service
+5. Данные возвращаются в формате JSON с labels и datasets
+6. Чарты отрисовываются с помощью библиотеки Recharts
+7. Пользователь может редактировать код чарта с превью результата
+8. Чарты располагаются в grid layout с настраиваемыми позицией и размером
+
 ## Интеграция с MCP
 
 ### Подключение к Bitrix24 MCP серверу
@@ -236,6 +289,31 @@ b24-analytics-hub/
 - Поддержка нескольких MCP серверов
 - Автоматическая передача инструментов в OpenAI
 
+## Python Executor Service
+
+### Описание
+Отдельный микросервис для безопасного выполнения Python кода, генерирующего данные для чартов.
+
+### Функциональность
+- HTTP endpoint `POST /execute` принимает Python код
+- Выполняет код в изолированном контексте с использованием `restrictedpython`
+- Ограничения безопасности:
+  - Таймаут выполнения (по умолчанию 30 секунд)
+  - Запрет опасных операций (file system, network, subprocess)
+  - Ограниченный набор встроенных функций
+- Ожидает возврат JSON через `print()` или переменную `result`
+- Формат данных: `{"labels": [...], "datasets": [{"label": "...", "data": [...], "backgroundColor": "..."}]}`
+
+### Технологии
+- **FastAPI** - веб-фреймворк
+- **restrictedpython** - безопасное выполнение Python кода
+- **Python 3.12** - версия Python
+
+### Интеграция
+- Backend вызывает executor через HTTP клиент (httpx)
+- URL настраивается через переменную окружения `PYTHON_EXECUTOR_URL`
+- Таймаут настраивается через `PYTHON_EXECUTOR_TIMEOUT`
+
 ## Безопасность
 - JWT токены с коротким сроком действия
 - Bcrypt для хеширования паролей
@@ -245,28 +323,39 @@ b24-analytics-hub/
 ## Docker
 
 ### Структура Docker файлов
-- **docker-compose.yml** - оркестрация backend и frontend сервисов
+- **docker-compose.yml** - оркестрация backend, frontend и python-executor сервисов
 - **backend/Dockerfile** - образ для FastAPI приложения
 - **backend/entrypoint.sh** - скрипт запуска с миграциями
+- **python-executor/Dockerfile** - образ для Python Executor Service
+- **python-executor/entrypoint.sh** - скрипт запуска executor
 - **frontend/Dockerfile** - сборка React приложения и запуск через Vite preview
 - **.dockerignore** - файлы, исключаемые из Docker контекста
 
 ### Запуск через Docker
-1. Backend сервис:
+1. Python Executor сервис:
+   - Использует Python 3.12-slim образ
+   - Запускает FastAPI приложение для выполнения Python кода
+   - Порт 8002 для API
+   - Volume `python_executor_cache` для кэша (опционально)
+
+2. Backend сервис:
    - Использует Python 3.12-slim образ
    - Автоматически выполняет миграции Alembic при запуске
    - База данных SQLite хранится в volume `backend_data`
    - Порт 8001 для API и WebSocket
+   - Зависит от python-executor сервиса
 
-2. Frontend сервис:
+3. Frontend сервис:
    - Использует Node 20 Alpine образ
    - Собирает React приложение через Vite
    - Запускает Vite preview сервер для раздачи статики
    - Порт 3000 для доступа к приложению
    - Проксирование API и WebSocket запросов настраивается на уровне сервера
+   - Зависит от backend сервиса
 
-3. Volumes:
+4. Volumes:
    - `backend_data` - хранение SQLite базы данных
+   - `python_executor_cache` - кэш для Python Executor Service
 
 ## Дизайн
 - Темная тема в стиле Open WebUI

@@ -7,7 +7,7 @@ import logging
 
 from app.config import settings
 from app.database import init_db, AsyncSessionLocal
-from app.api import auth, users, chats, messages, mcp, admin
+from app.api import auth, users, chats, messages, mcp, admin, dashboards
 from app.services.mcp_service import mcp_service
 
 # Configure logging
@@ -79,6 +79,7 @@ app.include_router(chats.router)
 app.include_router(messages.router)
 app.include_router(mcp.router)
 app.include_router(admin.router)
+app.include_router(dashboards.router)
 
 
 @app.get("/")

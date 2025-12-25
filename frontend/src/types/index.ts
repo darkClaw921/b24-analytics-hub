@@ -66,3 +66,53 @@ export interface MessageResponse {
   tool_calls: boolean
 }
 
+export type ChartType = 'line' | 'bar' | 'pie'
+
+export interface Chart {
+  id: number
+  dashboard_id: number
+  title: string
+  chart_type: ChartType
+  position_x: number
+  position_y: number
+  width: number
+  height: number
+  python_code: string
+  config?: Record<string, any>
+  created_at: string
+  updated_at: string
+}
+
+export interface Dashboard {
+  id: number
+  title: string
+  description?: string
+  created_at: string
+  updated_at: string
+  charts: Chart[]
+}
+
+export interface DashboardListItem {
+  id: number
+  title: string
+  description?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ChartData {
+  labels: string[]
+  datasets: Array<{
+    label: string
+    data: number[]
+    backgroundColor?: string
+    borderColor?: string
+  }>
+}
+
+export interface ChartExecuteResponse {
+  success: boolean
+  data?: ChartData
+  error?: string
+}
+
