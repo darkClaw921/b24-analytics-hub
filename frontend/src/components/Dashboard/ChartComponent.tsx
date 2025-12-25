@@ -32,7 +32,7 @@ const ChartComponent: React.FC<ChartComponentProps> = ({ chart, data, onRefresh 
   }
   
   return (
-    <div className="chart-wrapper" style={{ width: '100%', height: '100%' }}>
+    <div className="chart-wrapper" style={{ width: '100%', height: '100%', flex: '1 1 auto' }}>
       {onRefresh && (
         <button className="btn-refresh" onClick={onRefresh} title="Обновить данные">
           ↻

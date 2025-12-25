@@ -563,9 +563,10 @@ body {
   max-width: 1400px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  grid-template-columns: repeat(auto-fill, 100px);
   gap: 20px;
   align-items: start;
+  justify-content: start;
 }
 
 .dashboard-charts-grid .empty-state {
@@ -593,6 +594,7 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 300px;
+  height: 100%;
   transition: all 0.2s ease;
 }
 
@@ -608,6 +610,16 @@ body {
   margin-bottom: 15px;
   padding-bottom: 15px;
   border-bottom: 1px solid var(--border-color);
+  user-select: none;
+}
+
+.chart-header .chart-actions {
+  pointer-events: auto;
+}
+
+.chart-header .chart-actions button {
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 .chart-header h3 {
@@ -629,7 +641,7 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .chart-loading {
@@ -653,6 +665,127 @@ body {
   padding: 20px;
 }
 
+.chart-container.resizable {
+  position: relative;
+  overflow: visible;
+}
+
+.chart-container.resizable.dragging {
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+  transform: scale(1.02);
+  transition: transform 0.1s ease;
+}
+
+.chart-container.resizable .chart-header {
+  position: relative;
+  z-index: 1;
+  cursor: grab;
+}
+
+.chart-container.resizable.dragging .chart-header {
+  cursor: move;
+}
+
+.chart-container.resizable .chart-header:active {
+  cursor: grabbing;
+}
+
+.chart-container.resizable .chart-content {
+  position: relative;
+  z-index: 1;
+}
+
+.resize-handle {
+  position: absolute;
+  background: transparent;
+  z-index: 20;
+  transition: background 0.2s ease;
+  pointer-events: auto;
+}
+
+.resize-handle:hover {
+  background: rgba(99, 102, 241, 0.3);
+}
+
+/* Угловые handles */
+.resize-handle-corner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(99, 102, 241, 0.5);
+  border-radius: 3px;
+  background: var(--bg-card);
+}
+
+.resize-handle-nw {
+  top: -8px;
+  left: -8px;
+  cursor: nw-resize;
+}
+
+.resize-handle-ne {
+  top: -8px;
+  right: -8px;
+  cursor: ne-resize;
+}
+
+.resize-handle-sw {
+  bottom: -8px;
+  left: -8px;
+  cursor: sw-resize;
+}
+
+.resize-handle-se {
+  bottom: -8px;
+  right: -8px;
+  cursor: se-resize;
+}
+
+.resize-handle-corner:hover {
+  border-color: rgba(99, 102, 241, 1);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+/* Боковые handles */
+.resize-handle-edge {
+  background: transparent;
+}
+
+.resize-handle-n {
+  top: -8px;
+  left: 0;
+  right: 0;
+  height: 16px;
+  cursor: n-resize;
+}
+
+.resize-handle-s {
+  bottom: -8px;
+  left: 0;
+  right: 0;
+  height: 16px;
+  cursor: s-resize;
+}
+
+.resize-handle-e {
+  top: 0;
+  right: -4px;
+  bottom: 0;
+  width: 8px;
+  cursor: e-resize;
+}
+
+.resize-handle-w {
+  top: 0;
+  left: -4px;
+  bottom: 0;
+  width: 8px;
+  cursor: w-resize;
+}
+
+.resize-handle-edge:hover {
+  background: rgba(99, 102, 241, 0.2);
+}
+
 .chart-wrapper {
   position: relative;
   width: 100%;
@@ -661,7 +794,7 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .btn-refresh {

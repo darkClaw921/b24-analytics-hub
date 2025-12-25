@@ -4,6 +4,7 @@ import { dashboardsService } from '../../services/dashboards'
 import { Dashboard, ChartData } from '../../types'
 import ChartComponent from './ChartComponent'
 import ChartEditor from './ChartEditor'
+import ResizableChartContainer from './ResizableChartContainer'
 import { useAuth } from '../../hooks/useAuth'
 
 export default function DashboardView() {
@@ -166,12 +167,29 @@ export default function DashboardView() {
           </div>
         ) : (
           dashboard.charts.map((chart) => (
-            <div
+            <ResizableChartContainer
               key={chart.id}
-              className="chart-container"
-              style={{
-                gridColumn: `span ${Math.ceil(chart.width / 100)}`,
-                gridRow: `span ${Math.ceil(chart.height / 100)}`,
+              chart={chart}
+              gridCellSize={100}
+              onResize={(width, height) => {
+                // Размер уже сохранен в БД через ResizableChartContainer
+                // Обновляем локальное состояние для немедленного отображения
+                if (dashboard) {
+                  const updatedCharts = dashboard.charts.map(c => 
+                    c.id === chart.id ? { ...c, width, height } : c
+                  )
+                  setDashboard({ ...dashboard, charts: updatedCharts })
+                }
+              }}
+              onMove={(positionX, positionY) => {
+                // Позиция уже сохранена в БД через ResizableChartContainer
+                // Обновляем локальное состояние для немедленного отображения
+                if (dashboard) {
+                  const updatedCharts = dashboard.charts.map(c => 
+                    c.id === chart.id ? { ...c, position_x: positionX, position_y: positionY } : c
+                  )
+                  setDashboard({ ...dashboard, charts: updatedCharts })
+                }
               }}
             >
               <div className="chart-header">
@@ -204,7 +222,7 @@ export default function DashboardView() {
                   <div className="chart-loading">Загрузка данных...</div>
                 )}
               </div>
-            </div>
+            </ResizableChartContainer>
           ))
         )}
       </div>
